@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri AI PPU Super Cepat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .loader {
+            border: 5px solid #e2e8f0; /* slate-200 */
+            border-radius: 50%;
+            border-top: 5px solid #3b82f6; /* blue-500 */
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .card-hover-effect {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .selected-article {
+            box-shadow: 0 0 0 3px #3b82f6; /* blue-500 ring */
+        }
+        /* Pulse animation for listening state */
+        .listening-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        /* Typing cursor effect */
+        .typing-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background-color: #334155; /* slate-700 */
+            animation: blink 0.7s infinite;
+            margin-left: 2px;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Galeri Berita Cerdas PPU</h1>
+            <p class="mt-2 text-lg text-slate-600">AI Teman Bicaramu untuk Berita Terbaru <span class="font-semibold text-blue-600">Seputar PPU</span></p>
+        </header>
+
+        <!-- Panel Asisten AI (Awalnya Tersembunyi) -->
+        <section id="ai-assistant-panel" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-xl mb-8 border border-slate-200">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <p class="text-sm font-medium text-blue-600">ANALISIS ARTIKEL</p>
+                    <h2 id="article-title" class="text-2xl lg:text-3xl font-bold text-slate-900 mt-1"></h2>
+                </div>
+                <button id="close-assistant-btn" class="text-slate-500 hover:text-slate-800 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <!-- Konten AI -->
+            <div id="ai-content-wrapper" class="space-y-8">
+                <!-- Sesi Ringkasan -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Ringkasan Jurnalistik</h3>
+                    <div id="summary-output" class="bg-slate-100 p-4 rounded-lg text-slate-600 leading-relaxed min-h-[100px] whitespace-pre-line"></div>
+                </div>
+
+                <!-- Sesi Tanya Jawab Suara -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Tanya Lebih Dalam Lagi!</h3>
+                    <div class="text-center">
+                        <button id="voice-ask-btn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-full hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-3 mx-auto">
+                            <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                            <span id="voice-btn-text">Tanya dengan Suara</span>
+                        </button>
+                    </div>
+                     <p id="user-question-transcript" class="text-center text-slate-500 italic mt-3 min-h-[1.5em]"></p>
+                    <div id="answer-output" class="bg-slate-100 p-4 rounded-lg mt-3 text-slate-600 min-h-[50px]">
+                         <p class="italic text-slate-400">Jawaban AI nanti muncul di sini ya.</p>
+                    </div>
+                    <audio id="answer-audio-player" class="w-full mt-3 hidden"></audio>
+                </div>
+            </div>
+            <!-- Loading Indicator untuk Panel AI -->
+            <div id="ai-loading-indicator" class="hidden text-center py-10">
+                <div class="loader mx-auto"></div>
+                <p id="ai-loading-text" class="mt-4 text-lg font-semibold text-slate-600">AI lagi mikir bentar ya...</p>
+            </div>
+        </section>
+
+        <!-- Galeri Artikel -->
+        <section id="article-grid-container">
+            <h2 class="text-2xl font-bold text-slate-900 mb-5 border-b pb-3">Berita PPU Terverifikasi</h2>
+            <div id="article-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="grid-loading-indicator" class="text-center py-20"><div class="loader mx-auto"></div><p class="mt-4 text-lg font-semibold text-slate-600">Mengambil berita terbaru...</p></div>
+        </section>
+    </div>
+
+    <script>
+        // --- DATA BERITA (LENGKAP DENGAN WAKTU & TEMPAT) ---
+        const newsData = [
+            { id: 1, title: "Bupati PPU Resmikan Pelatihan Digitalisasi Bagi 50 UMKM Lokal", snippet: "PENAJAM - Bertempat di Gedung Graha Pemuda, Penajam, pada Jumat, 3 Oktober 2025, pukul 14:00 WITA, Bupati PPU Mudyat Noor secara resmi membuka program pelatihan digital marketing. Acara ini dihadiri oleh 50 pelaku UMKM dari berbagai kecamatan untuk mendukung ekonomi lokal di era IKN.", url: "https://example.com/ppu-news" },
+            { id: 2, title: "Tingkatkan Layanan Kesehatan, RSUD Ratu Aji Putri Botung Terima Bantuan Pusat", snippet: "PENAJAM - Direktur RSUD Ratu Aji Putri Botung pada Sabtu, 4 Oktober 2025, mengonfirmasi penerimaan bantuan alkes dari Kemenkes. Bantuan ini diserahkan di kompleks RSUD dan bertujuan untuk meningkatkan kapasitas layanan kesehatan sebagai rumah sakit penyangga utama IKN.", url: "https://example.com/ppu-news" },
+            { id: 3, title: "Pemkab PPU Hibahkan Lahan 6,7 Hektare untuk Pembangunan Sekolah Rakyat", snippet: "SEPAKU - Dalam rapat paripurna di Gedung DPRD PPU pada Jumat, 3 Oktober 2025, Pemkab PPU secara resmi menyetujui hibah lahan seluas 6,7 hektare di Kecamatan Sepaku untuk pembangunan Sekolah Rakyat. Langkah ini ditujukan untuk pendidikan gratis bagi warga kurang mampu.", url: "https://example.com/ppu-news" },
+            { id: 4, title: "Jumat Curhat di Polsek Sepaku, Warga Keluhkan Masalah Kenakalan Remaja", snippet: "SEPAKU - Pada Jumat, 3 Oktober 2025, pukul 09:00 WITA, Polsek Sepaku menggelar program 'Jumat Curhat' di balai desa Karang Jinawi. Kapolsek Iptu Ahmad beserta jajaran mendengar langsung keluhan masyarakat, terutama terkait isu kenakalan remaja dan keamanan lingkungan.", url: "https://example.com/ppu-news" },
+            { id: 5, title: "Antisipasi Musim Tanam, Pemkab PPU Salurkan Bantuan Pupuk untuk Petani", snippet: "BABULU - Dinas Pertanian PPU, pada Sabtu, 4 Oktober 2025, mulai menyalurkan bantuan pupuk bersubsidi kepada kelompok tani di Kecamatan Babulu. Penyaluran simbolis dilakukan di lumbung desa Babulu Darat oleh Kepala Dinas Pertanian.", url: "https://example.com/ppu-news" },
+            { id: 6, title: "Rakor Kesiapan Pemilu 2026 Digelar di Kantor Bupati PPU", snippet: "PENAJAM - Seluruh unsur Forkopimda dan perwakilan KPU se-Kaltim berkumpul di Aula Lantai 3 Kantor Bupati PPU pada Jumat, 3 Oktober 2025, untuk mengikuti Rapat Koordinasi Kesiapan Pemilu Serentak 2026. Acara dibuka oleh Bupati Mudyat Noor pukul 10:00 WITA.", url: "https://example.com/ppu-news" },
+            { id: 7, title: "Festival Budaya Adat Paser Kembali Digelar di Lapangan Nenang", snippet: "PENAJAM - Bupati PPU Mudyat Noor membuka secara resmi Festival Budaya Adat Paser pada Sabtu malam, 4 Oktober 2025, di Lapangan Nenang, Penajam. Acara tahunan ini menampilkan berbagai kesenian dan tradisi lokal untuk melestarikan budaya asli Paser.", url: "https://example.com/ppu-news" },
+            { id: 8, title: "Percepat Proyek Air Bersih, Pipa Induk Mulai Dipasang di Kecamatan Waru", snippet: "WARU - Proyek strategis penyediaan air bersih di PPU memasuki tahap baru dengan dimulainya pemasangan pipa induk di sepanjang Jalan Provinsi, Kecamatan Waru. Pengerjaan ini dimulai pada Jumat, 3 Oktober 2025, dan dipantau langsung oleh dinas terkait.", url: "https://example.com/ppu-news" },
+            { id: 9, title: "Disdukcapil PPU Lakukan Layanan Jemput Bola Perekaman E-KTP di Desa Terpencil", snippet: "MARIDAN - Tim Disdukcapil PPU pada Sabtu, 4 Oktober 2025, mengadakan layanan jemput bola di Balai Desa Maridan, Kecamatan Sepaku. Kegiatan ini bertujuan untuk memastikan seluruh warga, terutama lansia di daerah terpencil, memiliki KTP elektronik.", url: "https://example.com/ppu-news" },
+            { id: 10, title: "Bupati PPU Hadiri Peresmian Kantor Cabang Bank Pembangunan Daerah", snippet: "PENAJAM - Bupati Mudyat Noor menghadiri acara peresmian gedung baru Kantor Cabang Bankaltimtara di Jalan Provinsi, Penajam, pada Jumat, 3 Oktober 2025. Peresmian ini diharapkan dapat meningkatkan layanan perbankan dan perekonomian daerah.", url: "https://example.com/ppu-news" },
+            { id: 11, title: "Program Internet Gratis Kini Aktif di Alun-Alun Penajam", snippet: "PENAJAM - Sejak Jumat sore, 3 Oktober 2025, layanan internet gratis dari Diskominfo PPU secara resmi dapat diakses oleh masyarakat di area Alun-Alun Penajam. Ini adalah salah satu dari 20 titik ruang publik yang akan difasilitasi.", url: "https://example.com/ppu-news" },
+            { id: 12, title: "Mudyat Noor Paparkan Kesiapan SDM PPU di Forum Nasional", snippet: "JAKARTA - Dalam sebuah forum pembangunan daerah di Hotel Kempinski, Jakarta, pada Jumat, 3 Oktober 2025, Bupati PPU Mudyat Noor memaparkan program-program peningkatan kualitas SDM lokal sebagai persiapan menyambut IKN.", url: "https://example.com/ppu-news" },
+            { id: 13, title: "Atlet Dayung PPU Borong Medali di Kejurprov Kaltim", snippet: "SAMARINDA - Kontingen dayung PPU berhasil meraih 3 medali emas dalam Kejuaraan Provinsi yang berakhir pada Sabtu, 4 Oktober 2025, di Venue Dayung Tepian Mahakam, Samarinda. Prestasi ini mendapat apresiasi langsung dari Bupati Mudyat Noor.", url: "https://example.com/ppu-news" },
+            { id: 14, title: "Gelar Pangan Murah Diserbu Warga di Kecamatan Penajam", snippet: "PENAJAM - Dinas KUKM Perindag PPU menggelar operasi pasar murah di Halaman Masjid Agung Al-Ikhlas, Penajam, pada Sabtu, 4 Oktober 2025. Kegiatan yang dimulai pukul 08:00 WITA ini diserbu warga yang mencari kebutuhan pokok dengan harga terjangkau.", url: "https://example.com/ppu-news" },
+            { id: 15, title: "PA dan PN Penajam Peringati HUT Dharmayukti Karini di Kantor Pengadilan", snippet: "PENAJAM - Bertempat di halaman Kantor Pengadilan Agama Penajam, pada Jumat, 3 Oktober 2025, dilaksanakan upacara bersama untuk memperingati hari ulang tahun Dharmayukti Karini yang ke-23, diikuti oleh seluruh jajaran PA dan PN Penajam.", url: "https://example.com/ppu-news" }
+        ].map(article => ({ ...article, fullText: `${article.title}\n\n${article.snippet}` }));
+        
+        let currentArticle = null;
+        let recognition;
+
+        const assistantPanel = document.getElementById('ai-assistant-panel');
+        const articleGrid = document.getElementById('article-grid');
+        const closeAssistantBtn = document.getElementById('close-assistant-btn');
+        const articleTitle = document.getElementById('article-title');
+        const summaryOutput = document.getElementById('summary-output');
+        const voiceAskBtn = document.getElementById('voice-ask-btn');
+        const voiceBtnText = document.getElementById('voice-btn-text');
+        const userQuestionTranscript = document.getElementById('user-question-transcript');
+        const answerOutput = document.getElementById('answer-output');
+        const answerAudioPlayer = document.getElementById('answer-audio-player');
+        const aiLoadingIndicator = document.getElementById('ai-loading-indicator');
+        const aiLoadingText = document.getElementById('ai-loading-text');
+        const aiContentWrapper = document.getElementById('ai-content-wrapper');
+
+        const apiKey = "";
+        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const ttsApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => updateVoiceButtonState('listening');
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userQuestionTranscript.textContent = `Kamu bertanya: "${transcript}"`;
+                handleAskQuestion(transcript);
+            };
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                userQuestionTranscript.textContent = "Aduh, aku nggak denger suaramu. Coba lagi ya.";
+                updateVoiceButtonState('idle');
+            };
+            recognition.onend = () => {};
+        } else {
+            voiceAskBtn.disabled = true;
+            voiceBtnText.textContent = "Browser tidak mendukung suara";
+        }
+
+        function renderArticleGrid() {
+            document.getElementById('grid-loading-indicator').classList.add('hidden');
+            articleGrid.innerHTML = '';
+            newsData.forEach(article => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col card-hover-effect';
+                card.innerHTML = `<div class="p-6 flex flex-col flex-grow"><h3 class="font-bold text-lg leading-tight text-slate-900">${article.title}</h3><p class="mt-2 text-slate-600 text-sm flex-grow">${article.snippet}</p><button data-id="${article.id}" class="analyze-btn mt-4 w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Analisis dengan AI</button></div>`;
+                articleGrid.appendChild(card);
+            });
+        }
+
+        async function showAiAssistant(articleId) {
+            currentArticle = newsData.find(a => a.id == articleId);
+            if (!currentArticle) return;
+            document.querySelectorAll('.analyze-btn').forEach(btn => btn.closest('.bg-white').classList.toggle('selected-article', btn.dataset.id == articleId));
+            document.getElementById('article-grid-container').classList.add('hidden');
+            assistantPanel.classList.remove('hidden');
+            window.scrollTo(0, 0);
+
+            aiContentWrapper.classList.add('hidden');
+            aiLoadingIndicator.classList.remove('hidden');
+            aiLoadingText.textContent = "AI sedang menganalisis beritanya untukmu...";
+
+            articleTitle.textContent = currentArticle.title;
+            answerOutput.innerHTML = '<p class="italic text-slate-400">Jawaban AI nanti muncul di sini ya.</p>';
+            userQuestionTranscript.textContent = '';
+            answerAudioPlayer.src = '';
+            answerAudioPlayer.classList.add('hidden');
+
+            await generateSummary(currentArticle.fullText);
+        }
+        
+        function showArticleGrid() {
+            assistantPanel.classList.add('hidden');
+            document.getElementById('article-grid-container').classList.remove('hidden');
+            document.querySelectorAll('.selected-article').forEach(el => el.classList.remove('selected-article'));
+        }
+        
+        function typeWriter(element, text, onComplete) {
+            element.innerHTML = "";
+            let i = 0;
+            const speed = 20;
+            const cursor = document.createElement('span');
+            cursor.className = 'typing-cursor';
+            element.appendChild(cursor);
+
+            function type() {
+                if (i < text.length) {
+                    cursor.insertAdjacentText('beforebegin', text.charAt(i));
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    cursor.remove();
+                    if (onComplete) onComplete();
+                }
+            }
+            type();
+        }
+
+        async function generateSummary(text) {
+            try {
+                const prompt = `Anda adalah seorang jurnalis. Buatlah ringkasan berita yang padat dan jelas dari artikel berikut dalam satu paragraf naratif yang mengalir. Ringkasan ini harus secara implisit menjawab pertanyaan 5W1H tanpa menyebutkan kata-kata tersebut secara eksplisit. Pastikan panjang ringkasan tidak lebih dari 800 karakter. Mulailah dengan kalimat kail (hook) yang menarik. Sampaikan dengan bahasa yang santai. Artikelnya:\n\n${text}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                const response = await fetch(geminiApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const result = await response.json();
+                const summaryText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal membuat ringkasan.";
+                
+                aiLoadingIndicator.classList.add('hidden');
+                aiContentWrapper.classList.remove('hidden');
+
+                typeWriter(summaryOutput, summaryText.replace(/\n\n/g, '\n'));
+
+            } catch (error) {
+                 aiLoadingIndicator.classList.add('hidden');
+                 aiContentWrapper.classList.remove('hidden');
+                 summaryOutput.innerHTML = `<p class="text-red-500">Aduh, maaf, gagal buatin ringkasan.</p>`;
+            }
+        }
+        
+        async function speakText(textToSpeak) {
+            answerAudioPlayer.classList.add('hidden');
+             try {
+                const prompt = `Ucapkan teks ini dengan gaya bicara yang tenang, santai, dan natural, seperti seorang teman yang sedang mengobrol dan menjelaskan sesuatu dengan jelas. Hindari intonasi yang terlalu bersemangat atau datar seperti robot. Buatlah senyaman mungkin untuk didengar. Ini teksnya: ${textToSpeak}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Sulafat" } } } },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+                const response = await fetch(ttsApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const result = await response.json();
+                const audioDataB64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const mimeType = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
+
+                if (audioDataB64 && mimeType) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10) || 24000;
+                    const pcmData = base64ToArrayBuffer(audioDataB64);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    answerAudioPlayer.src = URL.createObjectURL(wavBlob);
+                    answerAudioPlayer.classList.remove('hidden');
+                    answerAudioPlayer.controls = true;
+                    
+                    answerAudioPlayer.onended = () => {
+                        updateVoiceButtonState('idle');
+                    };
+                    
+                    answerAudioPlayer.play();
+                } else throw new Error("Data audio tidak ditemukan.");
+            } catch (error) {
+                console.error("Audio generation failed:", error);
+                updateVoiceButtonState('idle');
+            }
+        }
+
+        async function handleAskQuestion(question) {
+            updateVoiceButtonState('processing');
+            answerOutput.innerHTML = '<p class="italic text-slate-400">Oke, lagi aku cariin jawaban terbaik di internet...</p>';
+            answerAudioPlayer.classList.add('hidden');
+            
+            try {
+                const prompt = `Kamu adalah asisten AI yang cerdas dan berwawasan luas. Berdasarkan konteks artikel berita yang diberikan DAN pengetahuanmu dari internet, berikan jawaban yang ringkas, padat, dan detail dengan **maksimal 500 karakter**. Jawab dengan bahasa Indonesia yang santai. Konteks artikel: "${currentArticle.fullText}". Pertanyaan: "${question}"`;
+                const payload = { 
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ "google_search": {} }]
+                };
+                const response = await fetch(geminiApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                const result = await response.json();
+                const answerText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Duh, aku nggak nemu jawabannya nih.";
+                
+                const openingPhrase = "Baiklah saya akan menjawab pertanyaanmu berdasarkan penelusuran AI.";
+                const closingPhrase = "Jika kamu belum puas dengan jawaban ini, silahkan untuk bertanya kembali, tekan tombol tanya dan katakan pertanyaanmu dengan detil.";
+                const fullSpokenResponse = `${openingPhrase} ${answerText} ${closingPhrase}`;
+
+                // Start audio generation immediately
+                speakText(fullSpokenResponse);
+                
+                // Start typing effect concurrently
+                typeWriter(answerOutput, answerText);
+
+            } catch (error) {
+                typeWriter(answerOutput, "Maaf, ada gangguan pas cari jawaban. Coba lagi ya.", () => {
+                    updateVoiceButtonState('idle');
+});
+            }
+        }
+        
+        function updateVoiceButtonState(state) {
+            if (state === 'listening') {
+                voiceAskBtn.disabled = true;
+                voiceBtnText.textContent = 'Mendengarkan...';
+                voiceAskBtn.classList.add('bg-red-500', 'listening-pulse');
+                voiceAskBtn.classList.remove('bg-blue-600');
+            } else if (state === 'processing') {
+                voiceAskBtn.disabled = true;
+                voiceBtnText.textContent = 'Memproses...';
+                voiceAskBtn.classList.remove('bg-red-500', 'listening-pulse', 'bg-blue-600');
+                voiceAskBtn.classList.add('bg-slate-500');
+            } else {
+                voiceAskBtn.disabled = false;
+                voiceBtnText.textContent = 'Tanya dengan Suara';
+                voiceAskBtn.classList.remove('bg-red-500', 'listening-pulse', 'bg-slate-500');
+                voiceAskBtn.classList.add('bg-blue-600');
+            }
+        }
+
+        function base64ToArrayBuffer(base64){const s=atob(base64),l=s.length,b=new Uint8Array(l);for(let i=0;i<l;i++)b[i]=s.charCodeAt(i);return b.buffer}
+        function pcmToWav(d,r){const n=1,t=16,a=d.length*2,e=new ArrayBuffer(44+a),i=new DataView(e),o=(o,s)=>{for(let t=0;t<s.length;t++)i.setUint8(o+t,s.charCodeAt(t))};o(0,"RIFF"),i.setUint32(4,36+a,!0),o(8,"WAVE"),o(12,"fmt "),i.setUint32(16,16,!0),i.setUint16(20,1,!0),i.setUint16(22,n,!0),i.setUint32(24,r,!0),i.setUint32(28,r*n*t/8,!0),i.setUint16(32,n*t/8,!0),i.setUint16(34,t,!0),o(36,"data"),i.setUint32(40,a,!0);for(let s=0;s<d.length;s++)i.setInt16(44+2*s,d[s],!0);return new Blob([i],{type:"audio/wav"})}
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderArticleGrid();
+            articleGrid.addEventListener('click', (e) => e.target.classList.contains('analyze-btn') && showAiAssistant(e.target.dataset.id));
+            closeAssistantBtn.addEventListener('click', showArticleGrid);
+            voiceAskBtn.addEventListener('click', () => {
+                if(recognition) recognition.start();
+            });
+        });
+    </script>
+</body>
+</html>
